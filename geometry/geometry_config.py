@@ -15,7 +15,7 @@ if "muShieldDesign" not in globals():
 if "muShieldGeo" not in globals():
     muShieldGeo = None
 if "nuTargetPassive" not in globals():
-    nuTargetPassive = 0
+    nuTargetPassive = 1
 if "nuTauTargetDesign" not in globals():
     nuTauTargetDesign = 0
     if muShieldDesign >= 7: 
@@ -49,8 +49,14 @@ with ConfigRegistry.register_config("basic") as c:
     extraVesselLength = totalLength - 50*u.m
     windowBulge = 1*u.m
     if tankDesign > 5: windowBulge = 25*u.cm
+#
+    magnet_design = 2
+    if tankDesign == 5: magnet_design = 3
+    if tankDesign == 6: magnet_design = 4
+#
     c.strawDesign = strawDesign
     c.tankDesign = tankDesign
+    c.magnetDesign = magnet_design
 # cave parameters
     c.cave = AttrDict(z=0*u.cm)
     c.cave.floorHeightMuonShield = 5*u.m
@@ -99,12 +105,13 @@ with ConfigRegistry.register_config("basic") as c:
      if tankDesign > 5: 
       c.Veto.outerSupport = 5.*u.mm
       c.Veto.outerSupportMed = "steel"
+      c.Veto.lidThickness = 16.*u.mm
      else:
       c.Veto.outerSupport = 8.*u.mm
       c.Veto.outerSupportMed = "Aluminum"
+      c.Veto.lidThickness = 80.*u.mm
      c.Veto.sensitiveThickness = 0.3*u.m
      c.Veto.sensitiveMed = "Scintillator"
-     c.Veto.lidThickness = 80.*u.mm
      c.Veto.decayMed = "vacuums"
      c.Veto.rib = 3.*u.cm
      c.Veto.ribMed = "steel"
@@ -162,9 +169,17 @@ with ConfigRegistry.register_config("basic") as c:
     c.strawtubes.VacBox_y           = 600.*u.cm * c.Yheight / (10.*u.m)
            
     c.Bfield = AttrDict(z=c.z)
-    c.Bfield.max = 1.4361*u.kilogauss  # was 1.15 in EOI
+    c.Bfield.max = 0 # 1.4361*u.kilogauss  # was 1.15 in EOI
     c.Bfield.y   = c.Yheight
     c.Bfield.x   = 3.*u.m
+    c.Bfield.fieldMap = "field/MainSpectrometerField.txt"
+    if c.magnetDesign>3:                          # MISIS design
+      c.Bfield.YokeWidth=0.85*u.m  # full width       200.*cm; 
+      c.Bfield.YokeDepth=1.75*u.m  # half length      200 *cm;
+      c.Bfield.CoilThick=25.*u.cm  # thickness
+      VesselThick=37.*u.cm;   # full thickness
+      c.Bfield.x = 251.*u.cm+VesselThick; # half apertures
+      c.Bfield.y = 501.*u.cm+VesselThick+c.Bfield.CoilThick
 
 # TimeDet
     c.TimeDet = AttrDict(z=0)
@@ -220,19 +235,19 @@ with ConfigRegistry.register_config("basic") as c:
 
     c.SplitCal = AttrDict(z=0)
     c.SplitCal.ZStart = c.TimeDet.z + c.TimeDet.DZ + 5*u.cm + presShowerDeltaZ 
-    c.SplitCal.XMax    =  290.*u.cm
-    c.SplitCal.YMax    =  510.*u.cm * c.Yheight / (10.*u.m)
+    c.SplitCal.XMax = 600.*u.cm/2. #290.*u.cm  #half length
+    c.SplitCal.YMax = 1200.*u.cm/2. #510.*u.cm * c.Yheight / (10.*u.m)   #half length  
     c.SplitCal.Empty = 0*u.cm
     c.SplitCal.BigGap = 100*u.cm
     c.SplitCal.ActiveECALThickness = 0.56*u.cm
-    c.SplitCal.FilterECALThickness = 0.28*u.cm #  0.56*u.cm   1.757*u.cm                                                                               
+    c.SplitCal.FilterECALThickness = 0.28*u.cm #  0.56*u.cm   1.757*u.cm           
     c.SplitCal.FilterECALThickness_first = 0.28*u.cm
     c.SplitCal.ActiveHCALThickness = 90*u.cm
     c.SplitCal.FilterHCALThickness = 90*u.cm
     c.SplitCal.nECALSamplings = 50
-    c.SplitCal.nHCALSamplings = 1
+    c.SplitCal.nHCALSamplings = 0
     c.SplitCal.ActiveHCAL = 0
-    c.SplitCal.FilterECALMaterial= 3    # 1=scintillator 2=Iron 3 = lead  4 =Argon                                                                     
+    c.SplitCal.FilterECALMaterial= 3    # 1=scintillator 2=Iron 3 = lead  4 =Argon  
     c.SplitCal.FilterHCALMaterial= 2
     c.SplitCal.ActiveECALMaterial= 1
     c.SplitCal.ActiveHCALMaterial= 1
@@ -242,11 +257,17 @@ with ConfigRegistry.register_config("basic") as c:
     c.SplitCal.second_precision_layer=10
     c.SplitCal.third_precision_layer=13
     c.SplitCal.ActiveECAL_gas_gap=10*u.cm
-    c.SplitCal.SplitCalThickness=(c.SplitCal.FilterECALThickness+c.SplitCal.ActiveECALThickness)*c.SplitCal.nECALSamplings+c.SplitCal.BigGap+c.SplitCal.FilterHCALThickness
+    c.SplitCal.NModulesInX = 2
+    c.SplitCal.NModulesInY = 4
+    c.SplitCal.NStripsPerModule = 50
+    c.SplitCal.StripHalfWidth = 3*u.cm # c.SplitCal.XMax/(c.SplitCal.NStripsPerModule*c.SplitCal.NModulesInX)
+    c.SplitCal.StripHalfLength = 150*u.cm # c.SplitCal.YMax/c.SplitCal.NModulesInY
+    c.SplitCal.SplitCalThickness=(c.SplitCal.FilterECALThickness_first-c.SplitCal.FilterECALThickness)+(c.SplitCal.FilterECALThickness+c.SplitCal.ActiveECALThickness)*c.SplitCal.nECALSamplings+c.SplitCal.BigGap
 
     c.ecal  =  AttrDict(z = c.TimeDet.z + c.TimeDet.DZ  + 5*u.cm + presShowerDeltaZ)  #
     c.ecal.File = EcalGeoFile
     hcalThickness = 232*u.cm
+    if  c.HcalOption == 2: hcalThickness = 110*u.cm  # to have same interaction length as before
     if not c.HcalOption < 0:
      c.hcal =  AttrDict(z=c.ecal.z + hcalThickness/2. + 45.*u.cm  )
      c.hcal.hcalSpace = hcalThickness + 5.5*u.cm
@@ -630,21 +651,22 @@ with ConfigRegistry.register_config("basic") as c:
         c.NuTauTarget.col=9
         c.NuTauTarget.wall=20
     if c.NuTauTarget.Design == 3: #One unique magnet, eventually more than one target volume 
-        c.NuTauTarget.row=1
-        c.NuTauTarget.col=1
+        c.NuTauTarget.row=7
+        c.NuTauTarget.col=7
         #c.NuTauTarget.wall=19
-        c.NuTauTarget.wall=1#10
-        c.NuTauTarget.target=1 #number of neutrino target volumes
+        c.NuTauTarget.wall=10
+        c.NuTauTarget.target=2 #number of neutrino target volumes
 
         
     c.NuTauTarget.nuTargetPassive = nuTargetPassive
 
     c.NuTauTarget.Ydist = 0.2*u.cm
     
-    c.NuTauTarget.EmTh = 0.0045 * u.cm
+    c.NuTauTarget.SingleEmFilm = True
+    c.NuTauTarget.EmTh = 0.0070 * u.cm
     c.NuTauTarget.EmX = 12.5 * u.cm
     c.NuTauTarget.EmY = 9.9 * u.cm
-    c.NuTauTarget.PBTh = 0.0205 * u.cm
+    c.NuTauTarget.PBTh = 0.0175 * u.cm
     c.NuTauTarget.LeadTh = 0.1 * u.cm
     c.NuTauTarget.EPlW = 2* c.NuTauTarget.EmTh + c.NuTauTarget.PBTh
     c.NuTauTarget.AllPW = c.NuTauTarget.LeadTh + c.NuTauTarget.EPlW
