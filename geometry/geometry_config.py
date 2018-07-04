@@ -662,7 +662,7 @@ with ConfigRegistry.register_config("basic") as c:
 
     c.NuTauTarget.Ydist = 0.2*u.cm
     
-    c.NuTauTarget.SingleEmFilm = True
+    c.NuTauTarget.SingleEmFilm = False
     c.NuTauTarget.EmTh = 0.0070 * u.cm
     c.NuTauTarget.EmX = 12.5 * u.cm
     c.NuTauTarget.EmY = 9.9 * u.cm
